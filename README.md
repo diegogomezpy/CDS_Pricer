@@ -36,41 +36,53 @@ This is **not** risk-neutral pricing. Under a risk-neutral framework the premium
 
 | File | Description |
 |------|-------------|
-| `cds_pricing_prototype.py` | Core module: `CreditDefaultSwap`, `Loan`, `SyntheticCDO` classes |
+| `cds_pricer.py` | Core module: `CreditDefaultSwap`, `Loan`, `SyntheticCDO` classes + `run_synthetic_cdo_ui()` |
 | `demo.ipynb` | Interactive Jupyter/Colab notebook with widget UI and visualisation |
 | `requirements.txt` | Dependencies |
 
 ## Installation
 
 ```bash
-git clone https://github.com/diegogomezpy/cds-tranche-pricer
-cd cds-tranche-pricer
+git clone https://github.com/diegogomezpy/CDS_Pricer
+cd CDS_Pricer
 pip install -r requirements.txt
 ```
 
 ## Usage
 
-### Interactive (recommended)
+### Google Colab (recommended)
 
-Open `demo.ipynb` in Jupyter or Colab, run all cells, and use the widgets to configure tranches and portfolio parameters.
+Open a new Colab notebook and run these three cells in order:
 
-**In Colab**, add this at the top before running:
+**Cell 1** — pull the module from GitHub:
 ```python
-from google.colab import drive
-drive.mount('/content/drive')
-import sys
-sys.path.append('/content/drive/MyDrive/your-folder-name')
+!wget -O cds_pricer.py https://raw.githubusercontent.com/diegogomezpy/CDS_Pricer/main/cds_pricer.py
 ```
+
+**Cell 2** — import with forced reload to bypass Colab's module cache:
+```python
+import importlib
+import cds_pricer
+importlib.reload(cds_pricer)
+from cds_pricer import SyntheticCDO, run_synthetic_cdo_ui
+```
+
+**Cell 3** — launch the interactive UI:
+```python
+run_synthetic_cdo_ui()
+```
+
+> **Note:** The `importlib.reload` in Cell 2 is necessary because Colab caches imported modules in memory. Without it, updates pushed to the repo won't be reflected until the runtime is restarted. Running Cell 1 and Cell 2 together is sufficient to always get the latest version.
 
 ### Programmatic
 
 ```python
-from cds_pricing_prototype import SyntheticCDO
+from cds_pricer import SyntheticCDO
 
 cdo = SyntheticCDO(
     num_tranches=3,
-    tranche_sizes=[30, 40, 30],       # must sum to notional
-    expected_returns=[0.08, 0.05, 0.03],  # equity, mezz, senior
+    tranche_sizes=[30, 40, 30],          # must sum to notional
+    expected_returns=[0.08, 0.05, 0.03], # equity, mezz, senior
     mean=120,
     std_dev=30,
     notional=100,
