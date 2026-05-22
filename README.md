@@ -37,7 +37,6 @@ This is **not** risk-neutral pricing. Under a risk-neutral framework the premium
 | File | Description |
 |------|-------------|
 | `cds_pricer.py` | Core module: `CreditDefaultSwap`, `Loan`, `SyntheticCDO` classes + `run_synthetic_cdo_ui()` |
-| `demo.ipynb` | Interactive Jupyter/Colab notebook with widget UI and visualisation |
 | `requirements.txt` | Dependencies |
 
 ## Installation
