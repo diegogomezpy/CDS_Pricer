@@ -231,3 +231,103 @@ class SyntheticCDO:
             print(f"  Expected return:               {expected_equity_return * 100:.2f}%\n")
         else:
             print("  No expected return (no residual notional).\n")
+
+
+# ── Interactive UI ──────────────────────────────────────────────────────────
+
+def run_synthetic_cdo_ui():
+    """
+    Interactive ipywidgets UI for building and visualising a SyntheticCDO.
+    Run inside a Jupyter notebook or Google Colab cell.
+    """
+    import matplotlib.pyplot as plt
+    import ipywidgets as widgets
+    from IPython.display import display, clear_output
+
+    num_tranches = widgets.BoundedIntText(value=3, min=1, max=10, step=1, description='Tranches:')
+    display(num_tranches)
+
+    confirm_button = widgets.Button(description='Continue')
+    display(confirm_button)
+
+    def on_confirm_clicked(_):
+        clear_output()
+        display(num_tranches)
+        n = num_tranches.value
+
+        tranche_sizes_widgets    = [widgets.FloatText(description=f'Size T{i+1}')   for i in range(n)]
+        expected_returns_widgets = [widgets.FloatText(description=f'Return T{i+1}') for i in range(n)]
+
+        print('Enter tranche sizes and target returns (as decimals, e.g. 0.05 = 5%):')
+        for w in tranche_sizes_widgets + expected_returns_widgets:
+            display(w)
+
+        mean           = widgets.FloatText(value=120,  description='Mean:')
+        std_dev        = widgets.FloatText(value=30,   description='Std Dev:')
+        notional       = widgets.FloatText(value=100,  description='Notional:')
+        risk_free_rate = widgets.FloatText(value=0.04, description='r:')
+        maturity       = widgets.FloatText(value=1,    description='Maturity:')
+        payment_freq   = widgets.Dropdown(options=[1, 2, 4, 12], value=4, description='Frequency:')
+
+        print('\nPortfolio parameters:')
+        display(mean, std_dev, notional, risk_free_rate, maturity, payment_freq)
+
+        build_button = widgets.Button(description='Build CDO')
+        display(build_button)
+        output_area = widgets.Output()
+        display(output_area)
+
+        def on_build_clicked(_):
+            with output_area:
+                clear_output()
+                sizes   = [w.value for w in tranche_sizes_widgets]
+                returns = [w.value for w in expected_returns_widgets]
+
+                cdo = SyntheticCDO(
+                    num_tranches=n,
+                    tranche_sizes=sizes,
+                    expected_returns=returns,
+                    mean=mean.value,
+                    std_dev=std_dev.value,
+                    notional=notional.value,
+                    risk_free_rate=risk_free_rate.value,
+                    maturity=maturity.value,
+                    payment_frequency=payment_freq.value
+                )
+
+                cdo.summarize()
+                cdo.summarize_equity()
+
+                mu, sigma = mean.value, std_dev.value
+                xs = np.linspace(mu - 4 * sigma, mu + 4 * sigma, 1000)
+                ys = norm.pdf(xs, mu, sigma)
+
+                fig, ax = plt.subplots(figsize=(12, 6))
+                ax.plot(xs, ys, label='Cashflow Distribution', lw=2, color='black')
+
+                colors = plt.cm.Pastel1.colors
+                for i, cds in enumerate(cdo.tranches):
+                    a, d = cds.attachment, cds.detachment
+                    label = (
+                        f'Tranche {i+1}\n{a:.0f}-{d:.0f}\n'
+                        f'Ret: {cds.expected_return*100:.1f}%\n'
+                        f'P(Loss): {cds.credit_event_probability*100:.1f}%\n'
+                        f'P(Profit): {cds.positive_return_probability*100:.1f}%'
+                    )
+                    ax.axvspan(a, d, alpha=0.3, color=colors[i % len(colors)])
+                    ax.text((a + d) / 2, max(ys) * 0.6, label,
+                            ha='center', va='top', fontsize=9,
+                            bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='black', alpha=0.85))
+
+                ax.axvline(mu, color='red', linestyle='--', lw=1.5, label='Expected Cashflow')
+                ax.set_title('Portfolio Cashflow Distribution and Tranche Breakdown', fontsize=14)
+                ax.set_xlabel('Portfolio Cashflow')
+                ax.set_ylabel('Density')
+                ax.grid(True)
+                ax.legend(loc='upper right')
+                plt.tight_layout()
+                plt.show()
+
+        build_button.on_click(on_build_clicked)
+
+    confirm_button.on_click(on_confirm_clicked)
